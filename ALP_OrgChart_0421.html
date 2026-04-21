@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALP 永聯物流開發 組織架構圖</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Avenir Next','Noto Sans TC',system-ui,sans-serif;background:#fff;overflow:hidden;height:100vh;display:flex;flex-direction:column;color:#000}
+.header{background:#000;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;z-index:50}
+.header h1{font-size:15px;font-weight:600;color:#fff;letter-spacing:.3px}
+.header .sub{font-size:10px;color:#999;margin-top:2px}
+.tabs{display:flex;gap:0;flex-shrink:0;background:#000;padding:0 24px}
+.tab{padding:8px 20px;font-size:12px;font-weight:500;cursor:pointer;color:#999;border-bottom:2px solid transparent;transition:all .15s;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none}
+.tab:hover{color:#ccc}
+.tab.active{color:#FAF054;border-bottom-color:#FAF054}
+.toolbar{display:flex;gap:5px;align-items:center}
+.toolbar button{padding:4px 10px;border:1px solid #555;background:transparent;border-radius:3px;font-size:10px;cursor:pointer;font-family:inherit;color:#ccc;transition:all .15s}
+.toolbar button:hover{background:#333;color:#fff}
+.toolbar .zoom-label{font-size:10px;color:#777;margin-left:4px;min-width:32px;text-align:right}
+.legend-bar{display:flex;gap:14px;padding:8px 24px;font-size:10px;color:#666;flex-wrap:wrap;background:#f8f8f8;border-bottom:1px solid #eee;flex-shrink:0}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-swatch{width:14px;height:9px;border-radius:2px}
+.canvas{flex:1;overflow:hidden;cursor:grab;position:relative;background:#fff}
+.canvas.grabbing{cursor:grabbing}
+.pan-layer{transform-origin:top left;position:absolute;top:0;left:0}
+.page{display:none}
+.page.active{display:block}
+
+/* === ALP Brand Node Styles === */
+.tree{display:flex;flex-direction:column;align-items:center}
+.vline{width:1px;height:18px;background:#D5D5D5;flex-shrink:0}
+.children-row{display:flex;align-items:flex-start;position:relative}
+.child-col{display:flex;flex-direction:column;align-items:center}
+
+.node{width:140px;min-height:50px;border-radius:4px;padding:6px 8px;text-align:center;cursor:pointer;position:relative;transition:transform .15s;display:flex;flex-direction:column;justify-content:center;align-items:center;flex-shrink:0}
+.node:hover{transform:translateY(-1px)}
+.node .nm{font-size:10px;font-weight:600;line-height:1.3;word-break:break-word}
+.node .ti{font-size:8px;margin-top:1px;line-height:1.2;word-break:break-word}
+.node .hc{font-size:7px;margin-top:2px}
+.node .desc{font-size:7px;margin-top:1px;line-height:1.2}
+.node .tog{position:absolute;top:1px;right:3px;font-size:8px;cursor:pointer;line-height:1;z-index:2}
+.node.tbh{border-style:dashed!important}
+.node.highlight{box-shadow:0 0 0 2px #FAF054}
+.node.dept{width:155px}
+.node.top{width:170px;min-height:56px}
+
+/* Brand colors mapped */
+.node.c-black{background:#000;color:#fff;border:1px solid #000}
+.node.c-black .ti,.node.c-black .hc,.node.c-black .desc,.node.c-black .tog{color:#D5D5D5}
+.node.c-gray{background:#f5f5f5;color:#000;border:1px solid #D5D5D5}
+.node.c-gray .ti,.node.c-gray .hc,.node.c-gray .desc{color:#666}
+.node.c-gray .tog{color:#999}
+.node.c-darkgray{background:#D5D5D5;color:#000;border:1px solid #bbb}
+.node.c-darkgray .ti,.node.c-darkgray .hc,.node.c-darkgray .desc,.node.c-darkgray .tog{color:#444}
+.node.c-tbh{background:#fff;color:#999;border:1.5px dashed #D5D5D5}
+.node.c-tbh .nm{color:#999}
+.node.c-tbh .ti,.node.c-tbh .hc{color:#bbb}
+.node.c-dispatch{background:#f8f8f8;color:#000;border:1.5px dotted #999}
+.node.c-dispatch .ti,.node.c-dispatch .desc{color:#666}
+.node.c-new{background:#000;color:#FAF054;border:1.5px solid #FAF054}
+.node.c-new .ti,.node.c-new .hc,.node.c-new .desc,.node.c-new .tog{color:#ccc}
+.node.c-new .nm{color:#FAF054}
+/* Company page specific */
+.node.c-chairman{background:#000;color:#fff;border:none;min-width:180px}
+.node.c-chairman .ti{color:#D5D5D5}
+.node.c-dept{background:#000;color:#fff;border:none;min-width:110px}
+.node.c-dept .ti,.node.c-dept .person{color:#D5D5D5}
+.node.c-dept-new{background:#000;color:#fff;border:1.5px solid #FAF054;min-width:110px;position:relative}
+.node.c-dept-new .ti,.node.c-dept-new .person{color:#D5D5D5}
+.new-tag{position:absolute;top:-8px;right:-6px;background:#FAF054;color:#000;font-size:7px;font-weight:700;padding:1px 5px;border-radius:2px;letter-spacing:.5px}
+.node.c-cfo{background:#fff;color:#000;border:1.5px solid #000;min-width:150px}
+.node.c-cfo .ti,.node.c-cfo .person{color:#555}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal{background:#fff;border-radius:4px;padding:24px;width:360px;border:1px solid #ddd}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:16px}
+.modal label{display:block;font-size:10px;color:#666;margin:10px 0 3px}
+.modal input,.modal select,.modal textarea{width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:3px;font-size:12px;font-family:inherit;outline:none}
+.modal input:focus,.modal textarea:focus{border-color:#000}
+.modal textarea{min-height:50px;resize:vertical}
+.modal-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:18px}
+.modal-actions button{padding:6px 14px;border:1px solid #ddd;background:#fff;border-radius:3px;font-size:11px;cursor:pointer;font-family:inherit}
+.modal-actions .primary{background:#000;color:#fff;border-color:#000}
+.modal-actions .danger{color:#c00;border-color:#c00}
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ALP 永聯物流開發 ・ 組織架構圖</h1>
+    <div class="sub">點擊節點編輯 ・ 拖曳平移 ・ 滾輪縮放</div>
+  </div>
+  <div class="toolbar">
+    <button onclick="expandAll()">全部展開</button>
+    <button onclick="collapseAll()">全部收合</button>
+    <button onclick="resetView()">重置視圖</button>
+    <span class="zoom-label" id="zoom-label">70%</span>
+  </div>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="switchPage('company')">公司架構</button>
+  <button class="tab" onclick="switchPage('it')">IT 部門</button>
+</div>
+<div id="legend-company" class="legend-bar">
+  <div class="legend-item"><div class="legend-swatch" style="background:#fff;border:1.5px solid #000"></div>部門</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#000;border:1.5px solid #FAF054"></div>新設</div>
+</div>
+<div id="legend-it" class="legend-bar" style="display:none">
+  <div class="legend-item"><div class="legend-swatch" style="background:#000;border:1px solid #000"></div>管理層/部門</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#D5D5D5;border:1px solid #bbb"></div>主管</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#f5f5f5;border:1px solid #D5D5D5"></div>成員</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#fff;border:1.5px dashed #D5D5D5"></div>TBH</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#f8f8f8;border:1.5px dotted #999"></div>派遣</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#000;border:1.5px solid #FAF054"></div>新組別</div>
+</div>
+<div class="canvas" id="canvas">
+  <div class="pan-layer" id="pan-layer"></div>
+</div>
+<div id="modal-root"></div>
+
+<script>
+// ===== PAGE STATE =====
+let currentPage='company';
+
+// ===== COMPANY ORG DATA =====
+const companyData={id:"chairman",name:"Jen Ho / 張仁和",title:"Chairman / 董事長",cls:"c-chairman top",children:[
+{id:"ceo",name:"CEO Office / 執行長室",title:"張建泰 Charlie",desc:"共同創辦人暨執行長",cls:"c-chairman",children:[
+{id:"ceoo",name:"CEOO",title:"執行長室",desc:"張建泰 Charlie\n共同創辦人暨執行長",cls:"c-cfo"},
+{id:"pd",name:"PD",title:"產品開發處",desc:"彭家麟 Sid\n副總經理",cls:"c-cfo"},
+{id:"tel",name:"TEL",title:"物流解決方案處",desc:"謝佩佳 Freda\n副總經理",cls:"c-cfo"},
+{id:"it-co",name:"IT",title:"資訊科技處",desc:"黃信銘 Hsinming\n資深副總經理",cls:"c-cfo"},
+{id:"bd",name:"BD",title:"商業發展處",desc:"周仁鉞 Buddy\n台灣暨亞太區執行副總裁",cls:"c-cfo"},
+{id:"ad",name:"AD",title:"行政資源處",desc:"林建成 Edward\n艾立棧板副總經理",cls:"c-cfo"},
+{id:"bm",name:"BM",title:"品牌行銷處",desc:"張建泰 Charlie\n共同創辦人暨執行長",cls:"c-cfo"},
+{id:"hr-co",name:"HR",title:"人力資源處",desc:"陳心怡 Cindy\n人力資源副總經理",cls:"c-cfo"},
+{id:"fa-co",name:"FA",title:"財務會計處",desc:"梁漢輝 Kevin\n資深副總經理",cls:"c-cfo"},
+{id:"om",name:"OM",title:"維護營運處",desc:"謝祥文 Vincent\n副總經理",cls:"c-dept-new",tag:"NEW"},
+{id:"sco",name:"SCO",title:"供應鏈優化處",desc:"沈泰霖 Tailing\n副總經理",cls:"c-dept-new",tag:"NEW"}
+]}
+]};
+
+// ===== IT ORG DATA =====
+const itData={id:"cto",name:"黃信銘",title:"IT 資深副總",desc:"總人數 47（在職 34 / 職缺 13）",cls:"c-black top",children:[
+{id:"omega",name:"OMEGA Information System",headcount:"在職 16 / 職缺 9",cls:"c-black dept",children:[
+{id:"omega-ajay",name:"林義傑 / AJay",title:"資深協理・OMEGA",cls:"c-darkgray",children:[
+{id:"omega-fe",name:"前端開發 Front-end",headcount:"4/4",cls:"c-black dept",children:[
+{id:"celine",name:"陳昱汝 / Celine Chen",title:"前端經理",cls:"c-darkgray",children:[
+{id:"jamie",name:"廖娟敏 / Jamie Liao",title:"前端資深工程師",cls:"c-gray"},
+{id:"ellie-fe",name:"李雨潔 / Ellie",title:"前端工程師",cls:"c-gray"},
+{id:"ping",name:"余秉軒 / Ping",title:"前端工程師",cls:"c-gray"}]}]},
+{id:"omega-wes",name:"後端開發 (WES)",headcount:"5/6",cls:"c-black dept",children:[
+{id:"joe",name:"游聿民 / Joe Yu",title:"後端經理",cls:"c-darkgray",children:[
+{id:"shelly",name:"楊子萱 / Shelly",title:"後端資深工程師",cls:"c-gray"},
+{id:"kenny",name:"倪睿謙 / Kenny",title:"後端資深工程師",cls:"c-gray"},
+{id:"steven",name:"王文農 / Steven",title:"應用系統後端專案副理",cls:"c-gray"},
+{id:"jayden",name:"賴政葦 / Jayden",title:"後端工程師",cls:"c-gray"},
+{id:"wes-tbh",name:"TBH",title:"後端工程師",cls:"c-tbh"}]}]},
+{id:"omega-hrms",name:"後端開發 (HRMS)",headcount:"1/2",cls:"c-black dept",children:[
+{id:"ajay-hrms",name:"林義傑 / AJay (代)",title:"HRMS差勤系統",cls:"c-darkgray",children:[
+{id:"harvey",name:"黃浩為 / Harvey",title:"後端資深工程師",cls:"c-gray"}]}]},
+{id:"omega-arch",name:"應用系統架構管理",headcount:"3/4",cls:"c-black dept",children:[
+{id:"markus",name:"李昆芳 / Markus",title:"系統架構協理",cls:"c-darkgray",children:[
+{id:"wayne",name:"鄒鎮遠 / Wayne",title:"資深工程師・DevOps",cls:"c-gray"},
+{id:"kyle-devops",name:"張宇鈞 / Kyle",title:"DevOps 工程師",cls:"c-gray"},
+{id:"arch-tbh",name:"TBH",title:"軟體架構師",cls:"c-tbh"}]}]},
+{id:"omega-pd",name:"產品規劃設計",headcount:"0→2",cls:"c-black dept",children:[
+{id:"cathy",name:"張育嘉 / Cathy",title:"產品經理",desc:"4/20 報到",cls:"c-tbh"},
+{id:"caroline",name:"呂汶憶 / Caroline",title:"產品經理",desc:"4/20 報到",cls:"c-tbh"}]},
+{id:"omega-consult",name:"產品顧問",headcount:"2/3",cls:"c-black dept",children:[
+{id:"daniel",name:"林志勤 / Daniel",title:"實施專案經理",cls:"c-darkgray",children:[
+{id:"shuyu",name:"鍾曙芸 / Shuyu",title:"實施專案經理",cls:"c-gray"},
+{id:"qwt",name:"齊偉庭",title:"專案經理",desc:"5/4 報到",cls:"c-tbh"},
+{id:"pm-tbh1",name:"TBH",title:"專案經理",cls:"c-tbh"},
+{id:"pm-tbh2",name:"TBH",title:"專案經理",cls:"c-tbh"}]},
+{id:"omega-tpm",name:"TBH",title:"OMEGA TPM",cls:"c-tbh"}]},
+{id:"omega-qa",name:"QA Team",headcount:"0/1",cls:"c-black dept",children:[
+{id:"qa1",name:"TBH",title:"測試工程師",cls:"c-tbh"}]},
+{id:"alp-my",name:"ALP Malaysia",headcount:"0/2",cls:"c-black dept",children:[
+{id:"my1",name:"TBH",title:"後端工程師",cls:"c-tbh"},
+{id:"my2",name:"TBH",title:"後端工程師",cls:"c-tbh"}]},
+{id:"alp-th",name:"ALP Thailand",headcount:"0/3",cls:"c-black dept",children:[
+{id:"th1",name:"TBH",title:"後端工程師",cls:"c-tbh"},
+{id:"th2",name:"TBH",title:"後端工程師",cls:"c-tbh"},
+{id:"th3",name:"TBH",title:"TPM",cls:"c-tbh"}]}]}]},
+{id:"logistics",name:"Logistics Information System",title:"供應鏈資訊系統",headcount:"在職 13 / 職缺 4",cls:"c-black dept",children:[
+{id:"log-ajay",name:"林義傑 / AJay",title:"資深協理・Logistics",cls:"c-darkgray",children:[
+{id:"kyle-ajay",name:"古世凱 / Kyle",title:"軟體架構師",cls:"c-gray"},
+{id:"log-fms",name:"後端開發 (FMS)",headcount:"4/5",cls:"c-black dept",children:[
+{id:"jonas",name:"李建興 / Jonas Li",title:"資深後端經理",cls:"c-darkgray",children:[
+{id:"mark",name:"徐偉翔 / Mark",title:"後端工程師",cls:"c-gray"},
+{id:"jimmy",name:"胡家銘 / Jimmy Hu",title:"應用系統後端專案副理",cls:"c-gray"},
+{id:"dc",name:"陳立融 / Daniel Chen",title:"後端工程師",cls:"c-gray"},
+{id:"fms-tbh",name:"TBH",title:"後端工程師",cls:"c-tbh"}]}]},
+{id:"log-tms",name:"後端開發 (TMS)",headcount:"2/2",cls:"c-black dept",children:[
+{id:"kent",name:"黎嘉祥 / Kent Li",title:"TMS 開發主管",cls:"c-darkgray",children:[
+{id:"penny",name:"賴允涵 / Penny Lai",title:"應用系統後端專案副理",cls:"c-gray"},
+{id:"tms-tbh",name:"TBH",title:"後端工程師",cls:"c-tbh"}]}]},
+{id:"log-consult",name:"產品顧問",headcount:"4/5",cls:"c-black dept",children:[
+{id:"daniel-l",name:"林志勤 / Daniel",title:"組長（暫代）",cls:"c-darkgray",children:[
+{id:"ellie-l",name:"黃詩晴 / Ellie",title:"專案主任",cls:"c-gray"}]},
+{id:"peter",name:"潘柏均 / Peter",title:"PM",cls:"c-gray",children:[
+{id:"eric",name:"Eric",title:"實習生",cls:"c-gray"}]},
+{id:"micky-tbh",name:"TBH",title:"PM（原Micky缺）",cls:"c-tbh"}]},
+{id:"log-wms",name:"WMS 維運",headcount:"1/2",cls:"c-black dept",children:[
+{id:"juster",name:"余政哲 / Juster",title:"倉儲管理系統經理",cls:"c-darkgray",children:[
+{id:"wms-tbh",name:"TBH",title:"專案工程師",cls:"c-tbh"}]}]},
+{id:"log-tpm",name:"TPM",headcount:"0/1",cls:"c-black dept",children:[
+{id:"ltpm",name:"TBH",title:"TPM",cls:"c-tbh"}]}]}]},
+{id:"mis",name:"MIS",headcount:"在職 3 / 職缺 0",cls:"c-black dept",children:[
+{id:"david-mis",name:"林駿翔 / David",title:"MIS 主管",cls:"c-darkgray",children:[
+{id:"luke",name:"Luke",title:"設備維護（瑞芳B）",desc:"派遣",cls:"c-dispatch"},
+{id:"charl",name:"Charl",title:"設備維護（OMEGA 2）",desc:"派遣",cls:"c-dispatch"}]}]},
+{id:"infra",name:"IT基礎建設",headcount:"在職 6 / 職缺 3",cls:"c-black dept",children:[
+{id:"ian",name:"張境倍 / Ian",title:"IT基礎建設協理",cls:"c-darkgray",children:[
+{id:"edison",name:"黃千豪 / Edison",title:"DBA",cls:"c-gray"},
+{id:"evelyn",name:"陳品彣 / Evelyn",title:"TPM",cls:"c-gray"},
+{id:"devops-tbh",name:"TBH",title:"DevOps",cls:"c-tbh"},
+{id:"infra-host",name:"主機管理",headcount:"2/3",cls:"c-black dept",children:[
+{id:"leo",name:"李宗原 / Leo",title:"資深工程師",cls:"c-gray"},
+{id:"andy",name:"楊輝宗 / Andy",title:"資深系統工程師",cls:"c-gray"},
+{id:"sys-tbh",name:"TBH",title:"資深工程師（系統）",cls:"c-tbh"}]},
+{id:"infra-net",name:"網路管理",headcount:"2/3",cls:"c-black dept",children:[
+{id:"david-net",name:"林駿翔 / David(兼)",title:"網管主管",cls:"c-darkgray",children:[
+{id:"andre",name:"蕭敬翰 / Andre",title:"管理副理",cls:"c-gray"},
+{id:"net-tbh",name:"TBH",title:"網路工程師",cls:"c-tbh"}]}]}]}]},
+{id:"edi",name:"企業數位整合 EDI",title:"Enterprise Digital Integration",headcount:"在職 5 / 職缺 3",cls:"c-new dept",children:[
+{id:"edi-data",name:"數據分析",headcount:"3/5",cls:"c-black dept",children:[
+{id:"chia",name:"李佳臻 / Chia Lee",title:"Data Analytics Manager・組長",cls:"c-darkgray",children:[
+{id:"lawrence",name:"郭浚紘 / Lawrence",title:"數據工程師",cls:"c-gray"},
+{id:"abby",name:"陳泓方 / Abby",title:"商業分析師",cls:"c-gray"},
+{id:"d-tbh1",name:"TBH",title:"Data",cls:"c-tbh"},
+{id:"d-tbh2",name:"TBH",title:"Data",cls:"c-tbh"}]}]},
+{id:"edi-sys",name:"系統整合及應用發展",headcount:"2/3",cls:"c-black dept",children:[
+{id:"sandy-e",name:"陳雅怡 / Sandy Chen",title:"應用系統後端專案副理・組長",cls:"c-darkgray",children:[
+{id:"eva-e",name:"郭儀中 / Eva Guo",title:"數據工程師",cls:"c-gray"},
+{id:"ems-tbh",name:"TBH",title:"後端工程師",cls:"c-tbh"},
+{id:"peiqi",name:"陳珮綺",title:"實習生（4/13報到）",cls:"c-tbh"}]}]}
+]}
+]};
+
+// ===== STATE =====
+let collapsed=new Set(),zoom=0.7,panX=60,panY=40,isPanning=false,sx=0,sy=0,ox=0,oy=0;
+const cv=document.getElementById("canvas"),pl=document.getElementById("pan-layer");
+
+function getData(){return currentPage==='company'?companyData:itData;}
+function find(id,n){n=n||getData();if(n.id===id)return n;if(n.children)for(let c of n.children){let f=find(id,c);if(f)return f;}return null;}
+function findP(id,n,p){n=n||getData();p=p||null;if(n.id===id)return p;if(n.children)for(let c of n.children){let f=findP(id,c,n);if(f)return f;}return null;}
+
+function rn(node){
+  const isTBH=(node.name||"").includes("TBH");
+  const hk=node.children&&node.children.length>0;
+  const ic=collapsed.has(node.id);
+  const cls=["node"];
+  if(node.cls)cls.push(node.cls);
+  if(isTBH&&!node.cls?.includes("c-tbh"))cls.push("tbh");
+
+  let h='<div class="tree">';
+  h+='<div class="'+cls.join(" ")+'" onclick="openEdit(\''+node.id+'\')">';
+  h+='<div class="nm">'+(node.name||"")+'</div>';
+  if(node.title)h+='<div class="ti">'+node.title+'</div>';
+  if(node.headcount)h+='<div class="hc">'+node.headcount+'</div>';
+  if(node.desc)h+='<div class="desc">'+node.desc.replace(/\n/g,"<br>")+'</div>';
+  if(node.tag)h+='<span class="new-tag">'+node.tag+'</span>';
+  if(hk)h+='<div class="tog" onclick="event.stopPropagation();tog(\''+node.id+'\')">'+(ic?"+":"-")+'</div>';
+  h+='</div>';
+
+  if(hk&&!ic){
+    h+='<div class="vline"></div>';
+    h+='<div class="children-row" data-parent="'+node.id+'">';
+    node.children.forEach(ch=>{
+      h+='<div class="child-col" style="margin:0 3px"><div class="vline"></div>'+rn(ch)+'</div>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+  return h;
+}
+
+function render(){
+  pl.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')';
+  const d=getData();
+  let extra='';
+  pl.innerHTML='<div style="padding:24px" id="content-wrap">'+rn(d)+extra+'</div>';
+  document.getElementById("zoom-label").textContent=Math.round(zoom*100)+"%";
+  requestAnimationFrame(()=>{
+    document.querySelectorAll(".children-row").forEach(row=>{
+      const cols=row.querySelectorAll(":scope > .child-col");
+      if(cols.length<2)return;
+      const first=cols[0],last=cols[cols.length-1];
+      const rr=row.getBoundingClientRect();
+      const fl=first.getBoundingClientRect();
+      const ll=last.getBoundingClientRect();
+      const left=(fl.left+fl.width/2-rr.left)/zoom;
+      const right=(ll.left+ll.width/2-rr.left)/zoom;
+      const line=document.createElement("div");
+      line.style.cssText='position:absolute;top:0;height:1px;background:#D5D5D5;left:'+left+'px;width:'+(right-left)+'px;';
+      row.style.position="relative";
+      row.prepend(line);
+    });
+  });
+}
+
+function switchPage(page){
+  currentPage=page;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelector('.tab:nth-child('+(page==='company'?'1':'2')+')').classList.add('active');
+  document.getElementById('legend-company').style.display=page==='company'?'flex':'none';
+  document.getElementById('legend-it').style.display=page==='it'?'flex':'none';
+  collapsed.clear();
+  zoom=1;panX=0;panY=0;
+  render();
+  setTimeout(autoFit,50);
+}
+
+function tog(id){collapsed.has(id)?collapsed.delete(id):collapsed.add(id);render();setTimeout(autoFit,50);}
+function expandAll(){collapsed.clear();render();setTimeout(autoFit,50);}
+function collapseAll(){const w=n=>{if(n.children&&n.children.length){collapsed.add(n.id);n.children.forEach(w);}};const d=getData();d.children&&d.children.forEach(w);render();setTimeout(autoFit,50);}
+function resetView(){zoom=1;panX=0;panY=0;render();setTimeout(autoFit,50);}
+
+function autoFit(){
+  const wrap=document.getElementById('content-wrap');
+  if(!wrap)return;
+  const cw=wrap.scrollWidth;
+  const ch=wrap.scrollHeight;
+  const vw=cv.clientWidth;
+  const vh=cv.clientHeight;
+  if(cw===0||ch===0)return;
+  const zx=vw/cw;
+  const zy=vh/ch;
+  zoom=Math.min(zx,zy,1.2)*0.92;
+  panX=Math.max((vw-cw*zoom)/2,10);
+  panY=Math.max((vh-ch*zoom)/2,10);
+  pl.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')';
+  document.getElementById("zoom-label").textContent=Math.round(zoom*100)+"%";
+}
+
+// Pan & Zoom
+cv.addEventListener("mousedown",e=>{if(e.target.closest(".node"))return;isPanning=true;sx=e.clientX;sy=e.clientY;ox=panX;oy=panY;cv.classList.add("grabbing");});
+cv.addEventListener("mousemove",e=>{if(!isPanning)return;panX=ox+(e.clientX-sx);panY=oy+(e.clientY-sy);pl.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')';});
+cv.addEventListener("mouseup",()=>{isPanning=false;cv.classList.remove("grabbing");});
+cv.addEventListener("mouseleave",()=>{isPanning=false;cv.classList.remove("grabbing");});
+cv.addEventListener("wheel",e=>{e.preventDefault();zoom=Math.min(Math.max(zoom+(e.deltaY>0?-0.05:0.05),0.15),2);render();},{passive:false});
+
+// Edit (IT page only)
+function openEdit(id){
+  if(currentPage==='company')return;
+  const node=find(id);if(!node)return;
+  const opts=[["c-black","黑（管理層）"],["c-darkgray","深灰（主管）"],["c-gray","淺灰（成員）"],["c-tbh","虛線（TBH）"],["c-dispatch","點線（派遣）"],["c-new","螢光黃（新組別）"]];
+  let sel=opts.map(([v,l])=>'<option value="'+v+'"'+(node.cls?.includes(v)?' selected':'')+'>'+l+'</option>').join("");
+  document.getElementById("modal-root").innerHTML=
+  '<div class="modal-bg" onclick="if(event.target===this)closeEdit()"><div class="modal"><h3>編輯節點</h3>'+
+  '<label>名稱</label><input id="e-name" value="'+(node.name||"").replace(/"/g,"&quot;")+'">'+
+  '<label>職稱</label><input id="e-title" value="'+(node.title||"").replace(/"/g,"&quot;")+'">'+
+  '<label>人數</label><input id="e-hc" value="'+(node.headcount||"").replace(/"/g,"&quot;")+'">'+
+  '<label>說明</label><textarea id="e-desc">'+(node.desc||"")+'</textarea>'+
+  '<label>樣式</label><select id="e-cls">'+sel+'</select>'+
+  '<div class="modal-actions">'+
+  '<button class="danger" onclick="delNode(\''+id+'\')">刪除</button>'+
+  '<button onclick="addChild(\''+id+'\')">新增下屬</button>'+
+  '<button onclick="closeEdit()">取消</button>'+
+  '<button class="primary" onclick="saveEdit(\''+id+'\')">儲存</button></div></div></div>';
+}
+function saveEdit(id){const n=find(id);if(!n)return;n.name=document.getElementById("e-name").value;n.title=document.getElementById("e-title").value;n.headcount=document.getElementById("e-hc").value;n.desc=document.getElementById("e-desc").value;n.cls=document.getElementById("e-cls").value;closeEdit();render();}
+function delNode(id){if(id==="cto"){alert("無法刪除根節點");return;}if(!confirm("確定刪除？"))return;const p=findP(id);if(p&&p.children)p.children=p.children.filter(c=>c.id!==id);closeEdit();render();}
+function addChild(pid){const p=find(pid);if(!p)return;if(!p.children)p.children=[];const nid="n"+Date.now();p.children.push({id:nid,name:"新節點",title:"",cls:"c-gray"});closeEdit();render();setTimeout(()=>openEdit(nid),100);}
+function closeEdit(){document.getElementById("modal-root").innerHTML="";}
+
+// Init
+render();
+setTimeout(autoFit,100);
+window.addEventListener('resize',()=>{clearTimeout(window._rzt);window._rzt=setTimeout(autoFit,150);});
+</script>
+</body>
+</html>
